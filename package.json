@@ -1,0 +1,19 @@
+{
+  "name": "html-profiler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "bun run src/server.js",
+    "dev": "bun run --watch src/server.js",
+    "build": "bun build"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "bun": "^1.1.36"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}
