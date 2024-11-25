@@ -2,6 +2,11 @@ import { serve } from "bun";
 import { readFile } from "fs/promises";
 import { JSDOM } from "jsdom";
 
+import dotenv from "dotenv";
+dotenv.config();
+
+const port = process.env.PORT || 9833;
+
 serve({
   async fetch(req) {
     const url = new URL(req.url);
@@ -43,7 +48,7 @@ serve({
       return new Response("OK");
     }
 
-    return new Response("Not Found", { status: 404 })3000;
+    return new Response("Not Found", { status: 404 });
   },
-  port: 9833,
+  port,
 });
