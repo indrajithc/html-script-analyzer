@@ -379,6 +379,10 @@ export const handleContentRequest = async (req) => {
                 <label class="btn btn-outline-primary ms-1" for="checkAll">Check all</label>
               </div>
 
+              <div class="mb-2">
+                <input type="search" class="form-control" placeholder="Search scripts" id="server-script-search" />
+              </div>
+
               ${
                 Array.isArray(scriptMetadata)
                   ? `
@@ -489,6 +493,20 @@ export const handleContentRequest = async (req) => {
                 event.preventDefault();
                 event.stopPropagation();
                 onScriptToggle(checkbox.getAttribute('target-id'));
+              });
+            });
+
+            document.getElementById('server-script-search').addEventListener('input', (event) => {
+              const searchValue = event.target.value;
+              const serverScriptsContainer = document.getElementById('serverScriptsContainer');
+              const accordionItems = serverScriptsContainer.querySelectorAll('.accordion-item');
+              accordionItems.forEach((accordionItem) => {
+                const scriptId = accordionItem.querySelector('.accordion-header').innerText;
+                if(scriptId.toLowerCase().includes(searchValue.toLowerCase())) {
+                  accordionItem.style.display = 'block';
+                } else {
+                  accordionItem.style.display = 'none';
+                }
               });
             });
 
