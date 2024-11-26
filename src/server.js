@@ -38,7 +38,6 @@ const handleTargetRequest = async (req) => {
     if (body.url) {
       try {
         const uri = new URL(body.url);
-        // download the content from the url and save in data folder
         const response = await fetch(uri);
         const content = await response.text();
         console.log("content", content);
@@ -53,15 +52,17 @@ const handleTargetRequest = async (req) => {
       const fileName = `${body.name}_${Date.now()}.html`;
       const filePath = path.join(contentDirectory, fileName);
       console.info("Saving content to", filePath);
-      const response = fs.writeFileSync(filePath, finalContent);
-      console.log("response", response);
+      fs.writeFileSync(filePath, finalContent);
     } catch (error) {
       console.error("Failed to save content", error);
       return new Response("Failed to save content", { status: 500 });
     }
 
-    console.log("body", body);
-    return new Response("POST request received", { status: 200 });
+    const files = getHtmlList();
+    return new Response(JSON.stringify({ files }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
   const htmlContent = `
   <!DOCTYPE html>
@@ -129,12 +130,15 @@ const handleTargetRequest = async (req) => {
 
       <script>
         const form = document.getElementById("uploader");
+        const fileTableBody = document.querySelector(".table-striped tbody");
+
         form.addEventListener("submit", async (e) => {
           e.preventDefault();
           const formData = new FormData(form);
           const url = formData.get("url");
           const content = formData.get("content");
           const name = formData.get("name");
+
           const response = await fetch("/target", {
             method: "POST",
             headers: {
@@ -142,12 +146,28 @@ const handleTargetRequest = async (req) => {
             },
             body: JSON.stringify({ name, url, content })
           });
+
           if (response.ok) {
             form.reset();
+            const { files } = await response.json();
+            updateFileTable(files);
           } else {
             alert("Failed to upload");
           }
         });
+
+        function updateFileTable(files) {
+          fileTableBody.innerHTML = files
+            .map(
+              (file) => \`
+                <tr>
+                  <td><a href="/content/\${file}" target="_blank">\${file}</a></td>
+                  <td><a href="/data/\${file}" download class="btn btn-secondary btn-sm">Download</a></td>
+                </tr>
+              \`
+            )
+            .join("");
+        }
       </script>
     </div>
   </body>
@@ -167,44 +187,6 @@ serve({
     if (pathname?.startsWith("/target")) {
       return handleTargetRequest(req);
     }
-
-    // if (url.pathname === "/") {
-    //   // Read and parse the HTML file
-    //   const html = await readFile("./index.html", "utf8");
-    //   const dom = new JSDOM(html);
-    //   const document = dom.window.document;
-
-    //   // Extract <script> tags and wrap them with toggling options
-    //   const scriptTags = Array.from(document.querySelectorAll("script"));
-    //   const scriptListHTML = scriptTags.map((script, idx) => `
-    //     <li>
-    //       <label>
-    //         <input type="checkbox" data-index="${idx}" checked> ${script.src || "Inline Script"}
-    //       </label>
-    //     </li>
-    //   `).join("");
-
-    //   // Append the toggle interface
-    //   const scriptToggleInterface = `
-    //     <ul>${scriptListHTML}</ul>
-    //     <script>
-    //       document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-    //         checkbox.addEventListener('change', async (e) => {
-    //           const index = e.target.getAttribute('data-index');
-    //           await fetch('/toggle?index=' + index, { method: 'POST' });
-    //           location.reload();
-    //         });
-    //       });
-    //     </script>
-    //   `;
-    //   document.body.innerHTML += scriptToggleInterface;
-
-    //   return new Response(dom.serialize(), { headers: { "Content-Type": "text/html" } });
-    // } else if (url.pathname === "/toggle") {
-    //   const index = new URLSearchParams(url.search).get("index");
-    //   // Logic to disable or enable script based on index
-    //   return new Response("OK");
-    // }
 
     return new Response("Not Found", { status: 404 });
   },
