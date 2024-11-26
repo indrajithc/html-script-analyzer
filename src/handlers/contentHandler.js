@@ -150,12 +150,16 @@ export const handleContentRequest = async (req) => {
         }
       </style>
       <script>
+      window.serverScriptIds = ${
+        JSON.stringify(scriptMetadata?.map((script) => script.id)) || "[]"
+      }
         function refreshIframe() {
           const iframe = document.getElementById('contentIframe');
           const spinner = document.getElementById('spinnerContainer');
           iframe.style.display = 'none'; // Hide iframe while loading
           spinner.classList.remove('hidden'); // Show spinner
           iframe.src = iframe.src; // Reload iframe
+          document.getElementById('cf-load-scripts').classList.add('d-none');
         }
   
         function onIframeLoad() {
@@ -163,6 +167,38 @@ export const handleContentRequest = async (req) => {
           const spinner = document.getElementById('spinnerContainer');
           spinner.classList.add('hidden'); // Hide spinner when iframe finishes loading
           iframe.style.display = 'block'; // Show iframe
+          document.getElementById('cf-load-scripts').classList.remove('d-none');
+        }
+
+        function loadScripts() {
+          const iframe = document.getElementById('contentIframe');
+          const newScriptContainer = document.getElementById('accordionNewScripts');
+
+          if(iframe.contentWindow) {
+          newScriptContainer.innerHTML = '';
+          let count = 0;
+            iframe.contentWindow.document.querySelectorAll('script').forEach((script) => {
+              const id = script.id;
+
+              if(id && serverScriptIds.includes(id)) {
+                return;
+              }
+                count++;
+
+              const src = script.src;
+              const content = script.innerHTML;
+              const card = document.createElement('div');
+              card.className = 'card card-body p-1 d-flex flex-column';
+              card.innerHTML = \`
+                <span class="fs-6 mb-2">[ \${count}] \${id}</span>
+                <small class="text-wrap text-muted fs-5">\${src || 'Inline script'}</small>
+                <textarea class="form-control w-100" style="background-color: #f8f9fa;" rows="\${((content.match(/\\n/g) || []).length || 0) + 3}" readonly>\${content}</textarea>
+              \`;
+              newScriptContainer.appendChild(card);
+            });
+
+          }
+
         }
       </script>
     </head>
@@ -170,7 +206,21 @@ export const handleContentRequest = async (req) => {
       <div class="container-fluid py-2 h-100">
         <div class="row h-100">
           <div class="col-12 col-md-6 col-lg-5">
-            <div class="card h-100">
+
+
+            <ul class="nav nav-tabs">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="initial-scripts" data-bs-toggle="tab" data-bs-target="#initial-scripts-pane" type="button" role="tab" aria-controls="initial-scripts-pane" aria-selected="true">Server</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="new-scripts" data-bs-toggle="tab" data-bs-target="#new-scripts-pane" type="button" role="tab" aria-controls="new-scripts-pane" aria-selected="false">Client</button>
+              </li> 
+            </ul>
+            <div class="tab-content" id="myTabContent">
+              <div class="tab-pane fade show active" id="initial-scripts-pane" role="tabpanel" aria-labelledby="initial-scripts" tabindex="0">
+                
+              
+              <div class="card h-100">
               <div class="card-header">
                 <h3>${fileName}</h3>
               </div>
@@ -221,6 +271,28 @@ export const handleContentRequest = async (req) => {
               
               </div>
             </div>
+          </div>
+          <div class="tab-pane fade" id="new-scripts-pane" role="tabpanel" aria-labelledby="new-scripts" tabindex="0">
+            
+            <div class="card h-100">
+              <div class="card-header">
+                <h3>${fileName}</h3>
+              </div>
+              <div class="card-body"> 
+              
+              <div class="overflow-y-auto overflow-x-hidden" style="height: calc(100vh - 150px);">
+              <div class="accordion" id="accordionNewScripts">
+                <button onclick="loadScripts()" class="btn btn-primary w-100 btn-lg d-none" id="cf-load-scripts">Load scripts</button>
+            
+              </div>
+              </div>
+          
+              </div>
+            </div>
+            </div>
+          
+          </div>
+
           </div>
           <div class="col h-100 position-relative">
             <div id="spinnerContainer" class="spinner-container">
