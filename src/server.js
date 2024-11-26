@@ -2,7 +2,7 @@ import { serve } from "bun";
 import fs from "fs";
 
 import path from "path";
-import config from "./config";
+import config, { staticHeaders } from "./config";
 import { handleContentRequest } from "./handlers/contentHandler";
 
 const { contentDirectory, port } = config;
@@ -11,10 +11,6 @@ const getHtmlList = () => {
   const files = fs.readdirSync(contentDirectory);
   return files;
 };
-
-const staticHeaders = `
- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-`;
 
 const handleTargetRequest = async (req) => {
   const method = req.method;
