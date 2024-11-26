@@ -297,6 +297,9 @@ export const handleContentRequest = async (req) => {
               newScriptContainer.appendChild(accordionItem);
             });
 
+            if(count === 0) {
+              newScriptContainer.innerHTML = '<p class="text-muted text-center mt-4">No new scripts found</p>';
+            }
           }
 
         }
@@ -386,7 +389,7 @@ export const handleContentRequest = async (req) => {
               ${
                 Array.isArray(scriptMetadata)
                   ? `
-                <div class="overflow-y-auto overflow-x-hidden" style="height: calc(100vh - 150px);">
+                <div class="overflow-y-auto overflow-x-hidden" style="height: calc(100vh - 250px);">
                   <div class="accordion" id="serverScriptsContainer">
               ${scriptMetadata
                 .map(
@@ -446,11 +449,14 @@ export const handleContentRequest = async (req) => {
                 <h3>${fileName}</h3>
               </div>
               <div class="card-body"> 
-              
-              <div class="overflow-y-auto overflow-x-hidden" style="height: calc(100vh - 150px);">
-              <div class="accordion" id="accordionNewScripts">
+
+              <div class="btn-group w-100 mb-2" role="group" aria-label="Basic checkbox toggle button group">
                 <button onclick="loadScripts()" class="btn btn-primary w-100 btn-lg d-none" id="cf-load-scripts">Load scripts</button>
-            
+              </div>
+              
+              <div class="overflow-y-auto overflow-x-hidden" style="height: calc(100vh - 250px);">
+              <div class="accordion" id="accordionNewScripts">
+                
               </div>
               </div>
           
