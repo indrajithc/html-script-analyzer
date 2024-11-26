@@ -98,7 +98,7 @@ export const handleContentRequest = async (req) => {
       }
 
       const updatedScriptMetadata = scriptMetadata.map((script) => {
-        if (targets.includes(script.id)) {
+        if (targets?.includes(script.id) || targets?.length === 0) {
           script.enabled = action;
         }
         return script;
@@ -283,6 +283,39 @@ export const handleContentRequest = async (req) => {
         }
 
 
+        async function handleBackendToggle(targetIds, action) {
+          const response = await fetch("/content/toggle", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ action, targets: targetIds , src: "${pathname}"})
+          });
+
+          if(response.ok) {
+            try {
+              const data = await response.json();
+              console.log('Script toggled', data);
+              const action = data.action;
+              const targetIds = data.targets;
+              if(Array.isArray(targetIds)) {
+              if(targetIds.length === 0) {
+                const checkboxes = document.querySelectorAll('.toggle-checkbox');
+                checkboxes.forEach((checkbox) => {
+                  checkbox.checked = action;
+                });
+                } else  {
+                  targetIds?.forEach((targetId) => {
+                    const targetCheckbox = document.getElementById('script' + targetId);
+                    targetCheckbox.checked = action;
+                  });
+                }
+              }
+            } catch(error) {
+              console.error('Failed to toggle script', error); 
+            }
+          }
+        }
 
         function checkAll() {
           const serverScriptsContainer = document.getElementById('serverScriptsContainer');
@@ -291,6 +324,7 @@ export const handleContentRequest = async (req) => {
           checkboxes.forEach((checkbox) => {
             checkbox.checked =  isCheckAll;
           });
+          handleBackendToggle([], isCheckAll);
         }
 
       </script>
@@ -422,33 +456,13 @@ export const handleContentRequest = async (req) => {
       </div>
        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
        <script>
+
           async function onScriptToggle(id) {
             console.log('Script toggled', id);  
               const checkbox =  document.getElementById('script' + id);
               const isChecked = checkbox.checked;
 
-              const response = await fetch("/content/toggle", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ action: isChecked, targets: [id] , src: "${pathname}"})
-              });
-
-              if(response.ok) {
-                try {
-                  const data = await response.json();
-                  console.log('Script toggled', data);
-                  const action = data.action;
-                  const targetIds = data.targets;
-                  targetIds?.forEach((targetId) => {
-                    const targetCheckbox = document.getElementById('script' + targetId);
-                    targetCheckbox.checked = action;
-                  });
-                } catch(error) {
-                  console.error('Failed to toggle script', error); 
-                }
-              }
+              handleBackendToggle([id], isChecked);
             }
 
             document.querySelectorAll('.toggle-checkbox').forEach((checkbox) => {
