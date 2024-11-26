@@ -261,7 +261,6 @@ export const handleContentRequest = async (req) => {
                 
                          </div>
                          <div>
-                           <input type="checkbox" class="form-check-input toggle-checkbox" id="scriptjxwd5zr7x" target-id="jxwd5zr7x">
                          </div>
                         </div>
                       </div>
