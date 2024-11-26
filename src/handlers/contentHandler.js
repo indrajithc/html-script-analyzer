@@ -33,6 +33,7 @@ const doFirstTimeActivity = (sourceFilePath, destinationDirectory) => {
     scriptList.push({
       id: scriptTag.id,
       src: src,
+      enabled: true,
       content: scriptTag.innerHTML,
     });
   });
@@ -143,8 +144,6 @@ export const handleContentRequest = async (req) => {
           iframe.style.display = 'block'; // Show iframe
         }
       </script>
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
-
     </head>
     <body>
       <div class="container-fluid py-2 h-100">
@@ -167,9 +166,9 @@ export const handleContentRequest = async (req) => {
                   (script, index) => `
                   <div class="accordion-item">
                     <h2 class="accordion-header" id="heading${index}">
-                      <div class="accordion-button d-flex flex-column " type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="true" aria-controls="collapse${index}">
-                        <div>${script.id}</div> 
-                        <small class="text-wrap text-muted">${
+                      <div class="card card-body p-1 d-flex flex-column " type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="true" aria-controls="collapse${index}">
+                        <span class="fs-6 mb-2">${script.id}</span> 
+                        <small class="text-wrap text-muted fs-5">${
                           script.src || "Inline script"
                         }</small>
                       </div>
@@ -178,8 +177,12 @@ export const handleContentRequest = async (req) => {
                       script.content
                         ? `
                     <div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#accordionExample">
-                      <div class="accordion-body">
-                      <pre><code class="language-js" id="code_${index}"></code></pre>
+                      <div class="accordion-body p-0">
+                      <textarea class="form-control w-100" style="background-color: #f8f9fa;" 
+                      rows="${
+                        ((script.content?.match(/\n/g) || []).length || 0) + 3
+                      }" readonly
+                      >${script.content}</textarea>
                       </div>
                     </div>
                     `
@@ -215,26 +218,6 @@ export const handleContentRequest = async (req) => {
         </div>
       </div>
        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-<script>
-${
-  Array.isArray(scriptMetadata)
-    ? scriptMetadata
-        .map((script, index) =>
-          script?.content
-            ? `
-document.getElementById('code_${index}').innerText = \`${script.content.replace(
-                /`/g,
-                "\\`"
-              )}\`;
-hljs.highlightElement(document.getElementById('code_${index}'));
-`
-            : ""
-        )
-        .join("\n")
-    : ""
-}
-</script>  
     </body>
   </html>
   `,
