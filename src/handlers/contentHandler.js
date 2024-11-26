@@ -2,6 +2,7 @@ import path from "path";
 import config, { staticHeaders } from "../config";
 import fs from "fs";
 import { JSDOM } from "jsdom";
+import { get } from "http";
 
 const { contentDirectory, contentConfigDirectory } = config;
 
@@ -10,6 +11,17 @@ const scriptMetadataFilename = "script-metadata.json";
 
 const getUniqueId = () => {
   return Math.random().toString(36).substr(2, 9);
+};
+
+const getSpyJs = () => {
+  return new Response(
+    `
+    console.log('Spy JS loaded');
+    `,
+    {
+      headers: { "Content-Type": "text/javascript" },
+    }
+  );
 };
 
 const doFirstTimeActivity = (sourceFilePath, destinationDirectory) => {
@@ -53,6 +65,11 @@ const doFirstTimeActivity = (sourceFilePath, destinationDirectory) => {
 
 export const handleContentRequest = async (req) => {
   const { pathname, searchParams } = new URL(req.url);
+
+  if (pathname === "/content/spy.js") {
+    return getSpyJs();
+  }
+
   const referer = req.headers.get("Referer");
 
   const fileName = pathname.split("/").pop();
@@ -79,6 +96,10 @@ export const handleContentRequest = async (req) => {
 
     const dom = new JSDOM(content);
     const { document } = dom.window;
+
+    document.body.appendChild(
+      document.createElement("script")
+    ).src = `/content/spy.js`;
 
     const html = document.documentElement.outerHTML;
 
