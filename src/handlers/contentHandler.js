@@ -155,6 +155,25 @@ export const handleContentRequest = async (req) => {
     const dom = new JSDOM(content);
     const { document } = dom.window;
 
+    try {
+      const scriptMetadataPath = path.join(
+        contentConfigDirectory,
+        fileName,
+        scriptMetadataFilename
+      );
+
+      let scriptMetadata = JSON.parse(
+        fs.readFileSync(scriptMetadataPath, "utf-8")
+      );
+
+      scriptMetadata.forEach((script) => {
+        if (!script.enabled) {
+          const scriptTag = document.getElementById(script.id);
+          scriptTag.remove();
+        }
+      });
+    } catch (error) {}
+
     document.body.appendChild(
       document.createElement("script")
     ).src = `/content/spy.js`;
@@ -257,7 +276,7 @@ export const handleContentRequest = async (req) => {
                         <div class="d-flex">
                         <div class="d-flex flex-column flex-grow-1"> 
                           <span class="fs-6 mb-2">[ \${count}] \${id}</span>
-                <small class="text-wrap text-muted fs-5">\${src || 'Inline script'}</small>
+                <small class="text-break text-muted fs-5">\${src || 'Inline script'}</small>
                 
                          </div>
                          <div>
@@ -374,7 +393,7 @@ export const handleContentRequest = async (req) => {
                         <div class="d-flex">
                         <div class="d-flex flex-column flex-grow-1"> 
                           <span class="fs-6 mb-2">${script.id}</span> 
-                          <small class="text-wrap text-muted fs-5">${
+                          <small class="text-break text-muted fs-5">${
                             script.src || "Inline script"
                           }</small> 
                          </div>
