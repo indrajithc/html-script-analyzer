@@ -17,8 +17,20 @@ if (!fs.existsSync(contentDirectory)) {
   fs.mkdirSync(contentDirectory);
 }
 
+const getHtmlList = () => {
+  const files = fs.readdirSync(contentDirectory);
+  return files;
+};
+
+const staticHeaders = `
+ <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+`;
+
 const handleTargetRequest = async (req) => {
   const method = req.method;
+  const pathname = new URL(req.url).pathname;
+
+  const files = getHtmlList();
 
   if (method === "POST") {
     const body = await req.json();
@@ -51,63 +63,96 @@ const handleTargetRequest = async (req) => {
     console.log("body", body);
     return new Response("POST request received", { status: 200 });
   }
-
   const htmlContent = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta http-equiv="X-UA-Compatible" content="IE=edge">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Html</title>
-    </head>
-    <body>
-      <h1>Html</h1>
-      <form id="uploader" method="POST">
-      <table>
-      <tr>
-      <td>Name</td>
-      <td><input type="text" name="name" placeholder="Enter name" /></td>
-      </tr>
-      <tr>
-      <td>Url</td>
-      <td><input type="text" name="url" placeholder="Enter url" /></td>
-      </tr>
-      <tr>
-      <td>Content</td>
-      <td><textarea name="content" placeholder="Enter html content"></textarea></td>
-      </tr>
-      <tr>
-      <td></td>
-      <td><button type="submit">Submit</button></td>
-      </tr>
-      </table> 
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Html</title>
+    ${staticHeaders}
+  </head>
+  <body class="bg-light">
+    <div class="container py-5">
+      <h1 class="text-center mb-4">Html</h1> 
+      <form id="uploader" method="POST" class="card p-4 shadow-sm">
+        <table class="table table-borderless">
+          <tbody>
+            <tr>
+              <td class="fw-bold">Name</td>
+              <td><input type="text" class="form-control" name="name" placeholder="Enter name" /></td>
+            </tr>
+            <tr>
+              <td class="fw-bold">Url</td>
+              <td><input type="text" class="form-control" name="url" placeholder="Enter url" /></td>
+            </tr>
+            <tr>
+              <td class="fw-bold">Content</td>
+              <td><textarea name="content" class="form-control" placeholder="Enter html content"></textarea></td>
+            </tr>
+            <tr>
+              <td></td>
+              <td><button type="submit" class="btn btn-primary w-100">Submit</button></td>
+            </tr>
+          </tbody>
+        </table>  
       </form>
+
+      ${
+        Array.isArray(files)
+          ? `
+          <div class="mt-5">
+            <table class="table table-striped">
+              <thead class="table-dark">
+                <tr>
+                  <th>File Name</th>
+                  <th>Download</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${files
+                  .map(
+                    (file) =>
+                      `<tr>
+                        <td><a href="/content/${file}" target="_blank">${file}</a></td>
+                        <td><a href="/data/${file}" download class="btn btn-secondary btn-sm">Download</a></td>
+                      </tr>`
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+          `
+          : '<p class="text-muted text-center mt-4">No files uploaded yet</p>'
+      }
+
       <script>
-      const form = document.getElementById("uploader");
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const formData = new FormData(form);
-        const url = formData.get("url");
-        const content = formData.get("content");
-        const name = formData.get("name");
-        const response = await fetch("/target", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ name, url, content })
+        const form = document.getElementById("uploader");
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const formData = new FormData(form);
+          const url = formData.get("url");
+          const content = formData.get("content");
+          const name = formData.get("name");
+          const response = await fetch("/target", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ name, url, content })
+          });
+          if (response.ok) {
+            form.reset();
+          } else {
+            alert("Failed to upload");
+          }
         });
-          if(response.ok) {
-          form.reset();
-        } else {
-          alert("Failed to upload");
-        }
-      });
       </script>
-    </body>
-    </html>
-  `;
+    </div>
+  </body>
+  </html>
+`;
 
   return new Response(htmlContent, {
     headers: { "Content-Type": "text/html" },
