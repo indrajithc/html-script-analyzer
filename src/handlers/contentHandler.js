@@ -70,6 +70,64 @@ export const handleContentRequest = async (req) => {
     return getSpyJs();
   }
 
+  if (pathname === "/content/toggle" && req.method === "POST") {
+    try {
+      const body = await req.json();
+      const { action, targets, src } = body;
+
+      const fileName = src.split("/").pop();
+      const filePath = path.join(contentConfigDirectory, fileName);
+
+      if (!fs.existsSync(filePath)) {
+        return new Response("File not found", { status: 404 });
+      }
+
+      const scriptMetadataPath = path.join(
+        contentConfigDirectory,
+        fileName,
+        scriptMetadataFilename
+      );
+
+      let scriptMetadata = null;
+      try {
+        scriptMetadata = JSON.parse(
+          fs.readFileSync(scriptMetadataPath, "utf-8")
+        );
+      } catch (error) {
+        console.error("Failed to read script metadata", error);
+      }
+
+      const updatedScriptMetadata = scriptMetadata.map((script) => {
+        if (targets.includes(script.id)) {
+          script.enabled = action;
+        }
+        return script;
+      });
+
+      try {
+        fs.writeFileSync(
+          scriptMetadataPath,
+          JSON.stringify(updatedScriptMetadata)
+        );
+      } catch (error) {
+        console.error("Failed to save script metadata", error);
+      }
+
+      return new Response(JSON.stringify({ success: true, ...body }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {}
+
+    return new Response(
+      JSON.stringify({ success: false, message: "Failed to toggle script" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+
   const referer = req.headers.get("Referer");
 
   const fileName = pathname.split("/").pop();
@@ -180,26 +238,62 @@ export const handleContentRequest = async (req) => {
             iframe.contentWindow.document.querySelectorAll('script').forEach((script) => {
               const id = script.id;
 
-              if(id && serverScriptIds.includes(id)) {
+              if(id && serverScriptIds.includes(id) || script.src.includes('spy.js')) {
                 return;
               }
                 count++;
 
               const src = script.src;
               const content = script.innerHTML;
-              const card = document.createElement('div');
-              card.className = 'card card-body p-1 d-flex flex-column';
-              card.innerHTML = \`
-                <span class="fs-6 mb-2">[ \${count}] \${id}</span>
+
+              console.log('Script found', id, src, content);  
+
+
+               const accordionItem = document.createElement('div');
+              accordionItem.className = 'accordion-item';
+              accordionItem.innerHTML = \` 
+                    <h2 class="accordion-header" id="gh-heading\${count}">
+                      <div class="card card-body  p-1" type="button" data-bs-toggle="collapse" data-bs-target="#gh-collapse\${count}" aria-expanded="true" aria-controls="collapse2">
+                        <div class="d-flex">
+                        <div class="d-flex flex-column flex-grow-1"> 
+                          <span class="fs-6 mb-2">[ \${count}] \${id}</span>
                 <small class="text-wrap text-muted fs-5">\${src || 'Inline script'}</small>
-                <textarea class="form-control w-100" style="background-color: #f8f9fa;" rows="\${((content.match(/\\n/g) || []).length || 0) + 3}" readonly>\${content}</textarea>
+                
+                         </div>
+                         <div>
+                           <input type="checkbox" class="form-check-input toggle-checkbox" id="scriptjxwd5zr7x" target-id="jxwd5zr7x">
+                         </div>
+                        </div>
+                      </div>
+                    </h2> 
+                    
+                    <div id="gh-collapse\${count}" class="accordion-collapse collapse" aria-labelledby="heading2" data-bs-parent="#serverScriptsContainer">
+                      <div class="accordion-body p-0">
+                      <textarea class="form-control w-100" style="background-color: #f8f9fa;" rows="\${((content.match(/\\n/g) || []).length || 0) + 3}" readonly>\${content}</textarea>
+                      </div>
+                    </div>
+                     
               \`;
-              newScriptContainer.appendChild(card);
+
+ 
+              newScriptContainer.appendChild(accordionItem);
             });
 
           }
 
         }
+
+
+
+        function checkAll() {
+          const serverScriptsContainer = document.getElementById('serverScriptsContainer');
+          const checkboxes = serverScriptsContainer.querySelectorAll('input[type="checkbox"]');
+          const isCheckAll = document.getElementById('checkAll').checked;
+          checkboxes.forEach((checkbox) => {
+            checkbox.checked =  isCheckAll;
+          });
+        }
+
       </script>
     </head>
     <body>
@@ -225,29 +319,46 @@ export const handleContentRequest = async (req) => {
                 <h3>${fileName}</h3>
               </div>
               <div class="card-body"> 
-              <button onclick="refreshIframe()" class="btn btn-primary w-100 btn-lg">Refresh Site</button>
-              
+            
+
+              <div class="btn-group w-100 mb-2" role="group" aria-label="Basic checkbox toggle button group">
+                <button onclick="refreshIframe()" class="btn btn-primary w-100 btn-lg">Refresh Site</button>
+                <input type="checkbox" class="btn-check"  id="checkAll" onclick="checkAll()" autocomplete="off">
+                <label class="btn btn-outline-primary ms-1" for="checkAll">Check all</label>
+              </div>
+
               ${
                 Array.isArray(scriptMetadata)
                   ? `
                 <div class="overflow-y-auto overflow-x-hidden" style="height: calc(100vh - 150px);">
-                  <div class="accordion" id="accordionExample">
+                  <div class="accordion" id="serverScriptsContainer">
               ${scriptMetadata
                 .map(
                   (script, index) => `
                   <div class="accordion-item">
                     <h2 class="accordion-header" id="heading${index}">
-                      <div class="card card-body p-1 d-flex flex-column " type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="true" aria-controls="collapse${index}">
-                        <span class="fs-6 mb-2">${script.id}</span> 
-                        <small class="text-wrap text-muted fs-5">${
-                          script.src || "Inline script"
-                        }</small>
+                      <div class="card card-body  p-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="true" aria-controls="collapse${index}">
+                        <div class="d-flex">
+                        <div class="d-flex flex-column flex-grow-1"> 
+                          <span class="fs-6 mb-2">${script.id}</span> 
+                          <small class="text-wrap text-muted fs-5">${
+                            script.src || "Inline script"
+                          }</small> 
+                         </div>
+                         <div  >
+                           <input type="checkbox" class="form-check-input toggle-checkbox" id="script${
+                             script.id
+                           }" ${script.enabled ? "checked" : ""} target-id="${
+                    script.id
+                  }">
+                         </div>
+                        </div>
                       </div>
                     </h2> 
                     ${
                       script.content
                         ? `
-                    <div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#accordionExample">
+                    <div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#serverScriptsContainer">
                       <div class="accordion-body p-0">
                       <textarea class="form-control w-100" style="background-color: #f8f9fa;" 
                       rows="${
@@ -311,6 +422,45 @@ export const handleContentRequest = async (req) => {
         </div>
       </div>
        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+       <script>
+          async function onScriptToggle(id) {
+            console.log('Script toggled', id);  
+              const checkbox =  document.getElementById('script' + id);
+              const isChecked = checkbox.checked;
+
+              const response = await fetch("/content/toggle", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ action: isChecked, targets: [id] , src: "${pathname}"})
+              });
+
+              if(response.ok) {
+                try {
+                  const data = await response.json();
+                  console.log('Script toggled', data);
+                  const action = data.action;
+                  const targetIds = data.targets;
+                  targetIds?.forEach((targetId) => {
+                    const targetCheckbox = document.getElementById('script' + targetId);
+                    targetCheckbox.checked = action;
+                  });
+                } catch(error) {
+                  console.error('Failed to toggle script', error); 
+                }
+              }
+            }
+
+            document.querySelectorAll('.toggle-checkbox').forEach((checkbox) => {
+              checkbox.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onScriptToggle(checkbox.getAttribute('target-id'));
+              });
+            });
+
+       </script>
     </body>
   </html>
   `,
