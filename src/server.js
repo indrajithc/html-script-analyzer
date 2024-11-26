@@ -1,21 +1,11 @@
 import { serve } from "bun";
-import { readFile } from "fs/promises";
-import { JSDOM } from "jsdom";
 import fs from "fs";
 
-import dotenv from "dotenv";
 import path from "path";
-dotenv.config();
+import config from "./config";
+import { handleContentRequest } from "./handlers/contentHandler";
 
-const rootDirectory = process.cwd();
-
-const port = process.env.PORT || 9833;
-
-const contentDirectory = path.join(rootDirectory, "data");
-
-if (!fs.existsSync(contentDirectory)) {
-  fs.mkdirSync(contentDirectory);
-}
+const { contentDirectory, port } = config;
 
 const getHtmlList = () => {
   const files = fs.readdirSync(contentDirectory);
@@ -186,6 +176,10 @@ serve({
 
     if (pathname?.startsWith("/target")) {
       return handleTargetRequest(req);
+    }
+
+    if (pathname?.startsWith("/content")) {
+      return handleContentRequest(req);
     }
 
     return new Response("Not Found", { status: 404 });
