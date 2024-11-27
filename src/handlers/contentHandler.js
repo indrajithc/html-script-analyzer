@@ -149,7 +149,7 @@ export const handleContentRequest = async (req) => {
     await doFirstTimeActivity(filePath, processingDirectory);
   }
 
-  if (referer) {
+  if (referer || pathname.startsWith("/content/html/")) {
     const content = fs.readFileSync(processingFilePath, "utf-8");
 
     const dom = new JSDOM(content);
